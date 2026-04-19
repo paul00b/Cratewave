@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config:*)",
+      "Bash(git fetch:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm create:*)",
+      "Bash(cp -r /c/Users/brous/Desktop/Dev/Cratewave-temp/* /c/Users/brous/Desktop/Dev/Cratewave/)",
+      "Bash(cp /c/Users/brous/Desktop/Dev/Cratewave-temp/.gitignore /c/Users/brous/Desktop/Dev/Cratewave/)",
+      "Bash(rm -rf /c/Users/brous/Desktop/Dev/Cratewave-temp)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
