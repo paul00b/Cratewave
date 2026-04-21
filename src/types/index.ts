@@ -98,7 +98,3 @@ export interface Recommendation {
   source: 'close' | 'far'
 }
 
-// App settings stored in localStorage
-export interface AppSettings {
-  geminiApiKey: string
-}

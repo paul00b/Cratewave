@@ -10,8 +10,8 @@ const SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/authorize'
 const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 const SPOTIFY_API = 'https://api.spotify.com/v1'
 
-// These are set per-user in settings; loaded at call time
-const getClientId = () => localStorage.getItem('cratewave_spotify_client_id') ?? ''
+const getClientId = () =>
+  (import.meta.env.VITE_SPOTIFY_CLIENT_ID as string | undefined) ?? ''
 const getRedirectUri = () => `${window.location.origin}/`
 
 const SCOPES = [
@@ -168,10 +168,14 @@ export async function createPlaylist(
     },
     body: JSON.stringify({ name, public: false }),
   })
-  if (!res.ok) throw new Error('Failed to create playlist')
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.error('[Spotify] createPlaylist failed', res.status, body)
+    throw new Error(`Spotify ${res.status}: ${body || res.statusText}`)
+  }
   const playlist = (await res.json()) as SpotifyPlaylist
 
-  await fetch(`${SPOTIFY_API}/playlists/${playlist.id}/tracks`, {
+  const addRes = await fetch(`${SPOTIFY_API}/playlists/${playlist.id}/tracks`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -179,6 +183,10 @@ export async function createPlaylist(
     },
     body: JSON.stringify({ uris: trackUris }),
   })
+  if (!addRes.ok) {
+    const body = await addRes.text().catch(() => '')
+    console.error('[Spotify] add tracks failed', addRes.status, body)
+  }
 
   return playlist
 }

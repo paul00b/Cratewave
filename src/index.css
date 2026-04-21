@@ -35,6 +35,11 @@
   }
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+
 @layer components {
   .glass {
     background: var(--color-surface);

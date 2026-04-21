@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useSpotifyAuth } from '../hooks/useSpotify'
 import { useAppStore } from '../store'
 import { createPlaylist, getCurrentUser } from '../services/spotify'
@@ -14,12 +13,11 @@ import MoodSelector from '../components/ui/MoodSelector'
 import ModeSlider from '../components/ui/ModeSlider'
 import GlassCard from '../components/ui/GlassCard'
 import DiscoveryCard from '../components/ui/DiscoveryCard'
-import { SkeletonList } from '../components/ui/Skeleton'
+import DiscoveryLoader from '../components/ui/DiscoveryLoader'
 import { MOOD_PROFILES } from '../utils/mood'
 
 export default function Discover() {
   const { isAuthenticated, getToken } = useSpotifyAuth()
-  const settings = useAppStore((s) => s.settings)
   const mood = useAppStore((s) => s.mood)
   const discoveryMode = useAppStore((s) => s.discoveryMode)
   const selectedTracks = useAppStore((s) => s.selectedTracks)
@@ -35,8 +33,6 @@ export default function Discover() {
   const [creatingPlaylist, setCreatingPlaylist] = useState(false)
 
   if (!isAuthenticated) return <AuthPrompt />
-
-  const missingKey = discoveryMode === 'far' && !settings.geminiApiKey
 
   const run = async () => {
     const token = getToken()
@@ -94,8 +90,8 @@ export default function Discover() {
       const playlist = await createPlaylist(token, user.id, name, uris)
       setPlaylistUrl(playlist.external_urls.spotify)
       clearSelectedTracks()
-    } catch {
-      setError('Impossible de créer la playlist')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de créer la playlist')
     } finally {
       setCreatingPlaylist(false)
     }
@@ -135,7 +131,7 @@ export default function Discover() {
           </div>
           <button
             onClick={run}
-            disabled={loading || missingKey}
+            disabled={loading}
             className="rounded-xl bg-violet px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-light disabled:opacity-40"
           >
             {loading
@@ -147,27 +143,13 @@ export default function Discover() {
         </div>
       </div>
 
-      {missingKey && (
-        <GlassCard className="text-center">
-          <p className="text-sm text-text-muted">
-            Clé API Gemini requise pour le mode Lointain.
-          </p>
-          <Link
-            to="/settings"
-            className="mt-2 inline-block text-sm text-violet-light hover:underline"
-          >
-            Configurer dans les paramètres
-          </Link>
-        </GlassCard>
-      )}
-
       {error && (
         <GlassCard className="border-rose/20 text-center text-sm text-rose-light">
           {error}
         </GlassCard>
       )}
 
-      {loading && <SkeletonList count={6} className="h-28 w-full" />}
+      {loading && <DiscoveryLoader mode={discoveryMode} />}
 
       {results.length > 0 && (
         <section>

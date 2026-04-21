@@ -1,13 +1,7 @@
 import type { GeminiRecommendation, Mood, SpotifyArtist, SpotifyTrack } from '../types'
 import { MOOD_PROFILES } from '../utils/mood'
 
-const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent'
-
-function getApiKey(): string {
-  const settings = localStorage.getItem('cratewave_settings')
-  if (!settings) return ''
-  return (JSON.parse(settings) as { geminiApiKey?: string }).geminiApiKey ?? ''
-}
+const GEMINI_PROXY = '/api/gemini'
 
 interface DeepRecInput {
   topArtists: SpotifyArtist[]
@@ -22,9 +16,6 @@ interface DeepRecInput {
 export async function getDeepRecommendations(
   input: DeepRecInput,
 ): Promise<GeminiRecommendation[]> {
-  const apiKey = getApiKey()
-  if (!apiKey) throw new Error('Gemini API key not configured')
-
   const { topArtists, topTracks, dominantTags, mood, count = 12, avoidArtists = [], randomSeed } = input
   const profile = MOOD_PROFILES[mood]
 
@@ -70,7 +61,7 @@ ${seedNote}
 Reply with ONLY a JSON array, no markdown fences, no prose. Each element:
 {"artist": "Artist Name", "track": "Track Title", "reason": "…", "genres": ["genre1", "genre2"]}`
 
-  const res = await fetch(`${GEMINI_API}?key=${apiKey}`, {
+  const res = await fetch(GEMINI_PROXY, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

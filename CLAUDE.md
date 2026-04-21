@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Cratewave is a client-side PWA for personalized music discovery, connected to Spotify. It uses Spotify listening data as a starting point and pushes users toward genres they wouldn't explore on their own, using Last.fm for similar artists and Gemini Flash for deep cross-genre recommendations based on mood.
 
-No backend. All API keys (Spotify, Gemini, Last.fm) are user-provided via the Settings page and stored in localStorage.
+Hybrid: client-side PWA + a single Vercel serverless proxy (`api/gemini.ts`) that holds the Gemini key server-side. Spotify Client ID and Last.fm key live in Vite env vars (public, safe — OAuth PKCE and read-only tag lookups respectively). Gemini key must stay server-only.
 
 ## Commands
 
@@ -26,25 +26,36 @@ No backend. All API keys (Spotify, Gemini, Last.fm) are user-provided via the Se
 ## Architecture
 
 ```
+api/                → Vercel serverless functions (edge runtime). `gemini.ts` proxies
+                      Gemini with the key held in the GEMINI_API_KEY env var.
 src/
-  pages/          → route-level components (Home, Stats, Discover, Settings)
-  components/     → Layout, Nav
-  components/ui/  → reusable UI: GlassCard, Skeleton, TimeRangeTabs, MoodSelector,
-                    ModeSlider, ArtistCard, TrackCard, DiscoveryCard, AuthPrompt
-  hooks/          → useSpotifyAuth (auth lifecycle), useLastFm, useGemini
-  services/       → API modules (spotify.ts, lastfm.ts, gemini.ts)
-  store/          → Zustand store (auth tokens, settings, UI state)
-  types/          → shared TypeScript types
-  utils/          → formatDuration, formatRelativeTime, computeDominantGenres
+  pages/            → route-level components (Home, Stats, Discover, Settings)
+  components/       → Layout, Nav
+  components/ui/    → reusable UI: GlassCard, Skeleton, TimeRangeTabs, MoodSelector,
+                      ModeSlider, ArtistCard, TrackCard, DiscoveryCard, DiscoveryLoader, AuthPrompt
+  hooks/            → useSpotifyAuth (auth lifecycle)
+  services/         → API modules (spotify.ts, lastfm.ts, gemini.ts, recommendations.ts)
+  store/            → Zustand store (auth tokens, UI state, seen artists)
+  types/            → shared TypeScript types
+  utils/            → formatDuration, formatRelativeTime, computeDominantGenres, mood.ts
 ```
 
-**Data flow:** Pages call services directly for data fetching (in useEffect or event handlers). Zustand store holds auth tokens, settings, selected tracks, discovery state (mood, mode, timeRange), and a topArtists cache shared between Stats and Discover.
+**Data flow:** Pages call services directly for data fetching. Zustand store holds auth tokens, selected tracks, discovery state (mood, mode, timeRange), topArtists cache, and a persistent `seenArtists` set.
 
-**Auth:** Spotify OAuth PKCE flow. `useSpotifyAuth()` is called at the App root (`App.tsx`) to handle OAuth callbacks on any page load. Auto-refreshes tokens 60s before expiry. Tokens in localStorage under `cratewave_spotify_tokens`. Spotify Client ID stored separately under `cratewave_spotify_client_id`.
+**Auth:** Spotify OAuth PKCE flow. `useSpotifyAuth()` is called at the App root to handle callbacks and refresh tokens. Spotify Client ID is a Vite env var (`VITE_SPOTIFY_CLIENT_ID`).
 
-**Settings persistence:** Gemini and Last.fm API keys stored in localStorage under `cratewave_settings`. No hardcoded keys anywhere. Settings page provides inputs for all three keys.
+**Env vars:**
+- `VITE_SPOTIFY_CLIENT_ID` — client-side, OAuth PKCE
+- `VITE_LASTFM_API_KEY` — client-side, read-only API
+- `GEMINI_API_KEY` — **server-only** (no VITE_ prefix), used by `api/gemini.ts`
 
-**Discovery modes:** "Proche" (close) uses Last.fm `getSimilarArtists` for top 5 user artists, deduplicates and filters known artists. "Lointain" (far) uses Gemini Flash to find cross-genre artists matching the selected mood.
+**Local dev with the Gemini proxy:** `npm run dev:vercel` (requires Vercel CLI). Plain `npm run dev` still works for everything except Gemini.
+
+**Recommendations pipeline (`src/services/recommendations.ts`):**
+- `buildListeningProfile` — merges short+medium term top artists/tracks, aggregates Last.fm tags, returns known-artists set + dominantTags. Cached 10 min in module scope.
+- **Close mode** — weighted Last.fm similar-artists on top 10 seeds, scored by match × seed weight + Last.fm tag overlap with user's dominant tags + mood tag boost/penalty (see `src/utils/mood.ts`). Resolved on Spotify with artist image + top tracks.
+- **Far mode** — Gemini proxy, track-level output (`{artist, track, reason, genres}`), rich context (top artists, top tracks, dominant tags, mood-specific boost/avoid tags, explicit avoid-list). Resolved on Spotify with artist image + matched track (fallback to artist popular tracks).
+- Both modes dedupe by resolved Spotify `artist.id`, skip the persistent `seenArtists` set in the store, return unified `Recommendation` type.
 
 **Playlist creation:** DiscoveryCard expands to show Spotify tracks via `searchTracks`. Selected tracks accumulate in the store. A floating bar lets users create a Spotify playlist in one click.
 
