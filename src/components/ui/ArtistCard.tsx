@@ -27,7 +27,7 @@ export default function ArtistCard({ artist }: Props) {
       )}
       <span className="text-center text-sm font-semibold">{artist.name}</span>
       <div className="flex flex-wrap justify-center gap-1">
-        {artist.genres.slice(0, 3).map((genre) => (
+        {(artist.genres ?? []).slice(0, 3).map((genre) => (
           <span
             key={genre}
             className="rounded-full bg-violet/10 px-2 py-0.5 text-xs text-violet-light"

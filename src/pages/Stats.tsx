@@ -42,41 +42,48 @@ export default function Stats() {
   useEffect(() => {
     const token = getToken()
     if (!token) return
+    let cancelled = false
 
     setLoadingArtists(true)
     setLoadingTracks(true)
 
     getTopArtists(token, timeRange, 20)
       .then((data) => {
+        if (cancelled) return
         setArtists(data)
         setTopArtists(data)
       })
-      .catch(() => setArtists([]))
-      .finally(() => setLoadingArtists(false))
+      .catch(() => !cancelled && setArtists([]))
+      .finally(() => !cancelled && setLoadingArtists(false))
 
     getTopTracks(token, timeRange, 20)
-      .then(setTracks)
-      .catch(() => setTracks([]))
-      .finally(() => setLoadingTracks(false))
+      .then((data) => !cancelled && setTracks(data))
+      .catch(() => !cancelled && setTracks([]))
+      .finally(() => !cancelled && setLoadingTracks(false))
+
+    return () => { cancelled = true }
   }, [timeRange, isAuthenticated, getToken, setTopArtists])
 
   // Fetch playlists + recent history once
   useEffect(() => {
     const token = getToken()
     if (!token) return
+    let cancelled = false
 
     setLoadingPlaylists(true)
     setLoadingRecent(true)
 
     getUserPlaylists(token)
-      .then((data) => setPlaylists(data.sort((a, b) => b.tracks.total - a.tracks.total)))
-      .catch(() => setPlaylists([]))
-      .finally(() => setLoadingPlaylists(false))
+      .then((data) => !cancelled && setPlaylists(data.sort((a, b) => b.tracks.total - a.tracks.total)))
+      .catch(() => !cancelled && setPlaylists([]))
+      .finally(() => !cancelled && setLoadingPlaylists(false))
 
     getRecentlyPlayed(token)
-      .then(setRecentlyPlayed)
-      .catch(() => setRecentlyPlayed([]))
-      .finally(() => setLoadingRecent(false))
+      .then((data) => !cancelled && setRecentlyPlayed(data))
+      .catch(() => !cancelled && setRecentlyPlayed([]))
+      .finally(() => !cancelled && setLoadingRecent(false))
+
+    return () => { cancelled = true }
   }, [isAuthenticated, getToken])
 
   if (!isAuthenticated) return <AuthPrompt />

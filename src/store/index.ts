@@ -36,6 +36,11 @@ interface AppState {
   // Top artists cache (used by discovery)
   topArtists: SpotifyArtist[]
   setTopArtists: (artists: SpotifyArtist[]) => void
+
+  // Seen artist names (lowercase) — exclude from future recommendations
+  seenArtists: string[]
+  markSeen: (names: string[]) => void
+  resetSeen: () => void
 }
 
 const loadSettings = (): AppSettings => {
@@ -43,7 +48,16 @@ const loadSettings = (): AppSettings => {
     const raw = localStorage.getItem('cratewave_settings')
     if (raw) return JSON.parse(raw) as AppSettings
   } catch { /* ignore */ }
-  return { geminiApiKey: '', lastfmApiKey: '' }
+  return { geminiApiKey: '' }
+}
+
+const SEEN_KEY = 'cratewave_seen_artists'
+const loadSeen = (): string[] => {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY)
+    if (raw) return JSON.parse(raw) as string[]
+  } catch { /* ignore */ }
+  return []
 }
 
 const loadTokens = (): SpotifyTokens | null => {
@@ -96,4 +110,17 @@ export const useAppStore = create<AppState>()((set) => ({
 
   topArtists: [],
   setTopArtists: (topArtists) => set({ topArtists }),
+
+  seenArtists: loadSeen(),
+  markSeen: (names) =>
+    set((state) => {
+      const lower = names.map((n) => n.toLowerCase())
+      const merged = Array.from(new Set([...state.seenArtists, ...lower])).slice(-500)
+      localStorage.setItem(SEEN_KEY, JSON.stringify(merged))
+      return { seenArtists: merged }
+    }),
+  resetSeen: () => {
+    localStorage.removeItem(SEEN_KEY)
+    set({ seenArtists: [] })
+  },
 }))

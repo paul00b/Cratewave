@@ -65,19 +65,40 @@ export interface LastFmArtist {
   mbid?: string
   url: string
   image?: { '#text': string; size: string }[]
+  match?: string
+}
+
+export interface LastFmTag {
+  name: string
+  count: number
 }
 
 // Gemini types
 
 export interface GeminiRecommendation {
   artist: string
+  track: string
   reason: string
   genres: string[]
-  spotifyId?: string
+}
+
+// Unified recommendation returned by the pipeline
+export interface Recommendation {
+  artist: {
+    id?: string
+    name: string
+    image?: string
+    spotifyUrl?: string
+  }
+  tracks: SpotifyTrack[]
+  reason: string
+  tags: string[]
+  // Score & source kept for transparency / debugging
+  score?: number
+  source: 'close' | 'far'
 }
 
 // App settings stored in localStorage
 export interface AppSettings {
   geminiApiKey: string
-  lastfmApiKey: string
 }

@@ -2,32 +2,33 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSpotifyAuth } from '../hooks/useSpotify'
 import { useAppStore } from '../store'
-import { getTopArtists, createPlaylist, getCurrentUser } from '../services/spotify'
-import { getSimilarArtists } from '../services/lastfm'
-import { getDeepRecommendations } from '../services/gemini'
-import type { LastFmArtist, GeminiRecommendation } from '../types'
+import { createPlaylist, getCurrentUser } from '../services/spotify'
+import {
+  buildListeningProfile,
+  getCloseRecommendations,
+  getFarRecommendations,
+} from '../services/recommendations'
+import type { Recommendation } from '../types'
 import AuthPrompt from '../components/ui/AuthPrompt'
 import MoodSelector from '../components/ui/MoodSelector'
 import ModeSlider from '../components/ui/ModeSlider'
 import GlassCard from '../components/ui/GlassCard'
 import DiscoveryCard from '../components/ui/DiscoveryCard'
 import { SkeletonList } from '../components/ui/Skeleton'
-
-type DiscoveryResult =
-  | { type: 'lastfm'; artists: LastFmArtist[] }
-  | { type: 'gemini'; recommendations: GeminiRecommendation[] }
+import { MOOD_PROFILES } from '../utils/mood'
 
 export default function Discover() {
   const { isAuthenticated, getToken } = useSpotifyAuth()
   const settings = useAppStore((s) => s.settings)
   const mood = useAppStore((s) => s.mood)
   const discoveryMode = useAppStore((s) => s.discoveryMode)
-  const topArtists = useAppStore((s) => s.topArtists)
-  const setTopArtists = useAppStore((s) => s.setTopArtists)
   const selectedTracks = useAppStore((s) => s.selectedTracks)
   const clearSelectedTracks = useAppStore((s) => s.clearSelectedTracks)
+  const seenArtists = useAppStore((s) => s.seenArtists)
+  const markSeen = useAppStore((s) => s.markSeen)
+  const resetSeen = useAppStore((s) => s.resetSeen)
 
-  const [results, setResults] = useState<DiscoveryResult | null>(null)
+  const [results, setResults] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [playlistUrl, setPlaylistUrl] = useState<string | null>(null)
@@ -35,55 +36,43 @@ export default function Discover() {
 
   if (!isAuthenticated) return <AuthPrompt />
 
-  const missingKey =
-    discoveryMode === 'close'
-      ? !settings.lastfmApiKey
-      : !settings.geminiApiKey
+  const missingKey = discoveryMode === 'far' && !settings.geminiApiKey
 
-  const handleSearch = async () => {
+  const run = async () => {
     const token = getToken()
     if (!token) return
 
     setLoading(true)
     setError(null)
-    setResults(null)
+    setResults([])
     setPlaylistUrl(null)
     clearSelectedTracks()
 
     try {
-      // Ensure topArtists is populated
-      let artists = topArtists
-      if (artists.length === 0) {
-        artists = await getTopArtists(token, 'medium_term', 20)
-        setTopArtists(artists)
-      }
+      const profile = await buildListeningProfile(token)
+      const seen = new Set(seenArtists)
 
-      if (discoveryMode === 'close') {
-        // Last.fm: get similar artists for top 5
-        const topNames = artists.slice(0, 5).map((a) => a.name)
-        const allSimilar = await Promise.all(
-          topNames.map((name) =>
-            getSimilarArtists(name, 8).catch(() => [] as LastFmArtist[]),
-          ),
+      const recs =
+        discoveryMode === 'close'
+          ? await getCloseRecommendations(token, profile, mood, seen, 10)
+          : await getFarRecommendations(
+              token,
+              profile,
+              mood,
+              seen,
+              12,
+              Math.floor(Math.random() * 10_000),
+            )
+
+      if (recs.length === 0) {
+        setError(
+          discoveryMode === 'close'
+            ? 'Aucune recommandation trouvée. Essaye d’élargir ton écoute puis recommence.'
+            : 'Gemini n’a pas renvoyé de résultats exploitables. Réessaye.',
         )
-        // Flatten, deduplicate, filter out known artists
-        const knownNames = new Set(artists.map((a) => a.name.toLowerCase()))
-        const seen = new Set<string>()
-        const unique: LastFmArtist[] = []
-        for (const list of allSimilar) {
-          for (const artist of list) {
-            const key = artist.name.toLowerCase()
-            if (!seen.has(key) && !knownNames.has(key)) {
-              seen.add(key)
-              unique.push(artist)
-            }
-          }
-        }
-        setResults({ type: 'lastfm', artists: unique })
       } else {
-        // Gemini: deep recommendations
-        const recs = await getDeepRecommendations(artists, mood, 15)
-        setResults({ type: 'gemini', recommendations: recs })
+        setResults(recs)
+        markSeen(recs.map((r) => r.artist.name))
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Une erreur est survenue')
@@ -99,16 +88,8 @@ export default function Discover() {
     setCreatingPlaylist(true)
     try {
       const user = await getCurrentUser(token)
-      const moodLabels: Record<string, string> = {
-        focus: 'Focus',
-        energy: 'Énergie',
-        melancholy: 'Mélancolie',
-        party: 'Fête',
-        chill: 'Chill',
-        introspection: 'Introspection',
-      }
       const date = new Date().toLocaleDateString('fr-FR')
-      const name = `Cratewave — ${moodLabels[mood]} — ${date}`
+      const name = `Cratewave — ${MOOD_PROFILES[mood].label} — ${date}`
       const uris = selectedTracks.map((t) => `spotify:track:${t.id}`)
       const playlist = await createPlaylist(token, user.id, name, uris)
       setPlaylistUrl(playlist.external_urls.spotify)
@@ -122,7 +103,24 @@ export default function Discover() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-3xl font-bold">Découvrir</h1>
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Découvrir</h1>
+          <p className="mt-1 text-xs text-text-muted">
+            {seenArtists.length > 0
+              ? `${seenArtists.length} artiste${seenArtists.length > 1 ? 's' : ''} déjà exploré${seenArtists.length > 1 ? 's' : ''}`
+              : 'Chaque recherche s’ajuste à tes écoutes récentes.'}
+          </p>
+        </div>
+        {seenArtists.length > 0 && (
+          <button
+            onClick={resetSeen}
+            className="text-xs text-text-muted transition-colors hover:text-rose-light"
+          >
+            Réinitialiser
+          </button>
+        )}
+      </div>
 
       {/* Controls */}
       <div className="flex flex-col gap-4">
@@ -130,17 +128,21 @@ export default function Discover() {
           <h2 className="mb-2 text-sm font-medium text-text-muted">Mood</h2>
           <MoodSelector />
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-end gap-4">
           <div>
             <h2 className="mb-2 text-sm font-medium text-text-muted">Mode</h2>
             <ModeSlider />
           </div>
           <button
-            onClick={handleSearch}
+            onClick={run}
             disabled={loading || missingKey}
-            className="mt-auto rounded-xl bg-violet px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-light disabled:opacity-40"
+            className="rounded-xl bg-violet px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-light disabled:opacity-40"
           >
-            {loading ? 'Recherche...' : 'Lancer la recherche'}
+            {loading
+              ? 'Recherche...'
+              : results.length > 0
+                ? 'Regénérer'
+                : 'Lancer la recherche'}
           </button>
         </div>
       </div>
@@ -148,9 +150,7 @@ export default function Discover() {
       {missingKey && (
         <GlassCard className="text-center">
           <p className="text-sm text-text-muted">
-            {discoveryMode === 'close'
-              ? 'Clé API Last.fm requise pour le mode Proche.'
-              : 'Clé API Gemini requise pour le mode Lointain.'}
+            Clé API Gemini requise pour le mode Lointain.
           </p>
           <Link
             to="/settings"
@@ -167,34 +167,19 @@ export default function Discover() {
         </GlassCard>
       )}
 
-      {/* Results */}
-      {loading && <SkeletonList count={8} className="h-24 w-full" />}
+      {loading && <SkeletonList count={6} className="h-28 w-full" />}
 
-      {results?.type === 'lastfm' && (
+      {results.length > 0 && (
         <section>
           <h2 className="mb-4 text-xl font-semibold">
-            Artistes similaires ({results.artists.length})
+            {discoveryMode === 'close' ? 'Proches' : 'Au-delà'} ·{' '}
+            <span className="text-text-muted">{results.length}</span>
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {results.artists.map((a) => (
-              <DiscoveryCard key={a.name} name={a.name} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {results?.type === 'gemini' && (
-        <section>
-          <h2 className="mb-4 text-xl font-semibold">
-            Recommandations Gemini ({results.recommendations.length})
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {results.recommendations.map((r) => (
+            {results.map((r, i) => (
               <DiscoveryCard
-                key={r.artist}
-                name={r.artist}
-                reason={r.reason}
-                genres={r.genres}
+                key={`${r.source}-${r.artist.id ?? r.artist.name}-${i}`}
+                rec={r}
               />
             ))}
           </div>
@@ -202,7 +187,7 @@ export default function Discover() {
       )}
 
       {/* Playlist creation bar */}
-      {results && selectedTracks.length > 0 && (
+      {results.length > 0 && selectedTracks.length > 0 && (
         <div className="glass fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 px-5 py-3">
           <span className="text-sm font-medium">
             {selectedTracks.length} morceau{selectedTracks.length > 1 ? 'x' : ''}{' '}
@@ -218,7 +203,6 @@ export default function Discover() {
         </div>
       )}
 
-      {/* Playlist success */}
       {playlistUrl && (
         <GlassCard className="text-center">
           <p className="mb-2 text-sm font-medium text-violet-light">

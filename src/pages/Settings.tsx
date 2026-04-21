@@ -20,7 +20,6 @@ export default function Settings() {
 
   // API key visibility toggles
   const [showGemini, setShowGemini] = useState(false)
-  const [showLastFm, setShowLastFm] = useState(false)
 
   // Persist client ID on change
   const handleClientIdChange = (value: string) => {
@@ -119,29 +118,6 @@ export default function Settings() {
         </div>
       </GlassCard>
 
-      {/* Last.fm API Key */}
-      <GlassCard>
-        <h2 className="mb-1 text-lg font-semibold">Last.fm</h2>
-        <p className="mb-3 text-xs text-text-muted">
-          Clé API Last.fm pour les artistes similaires.
-        </p>
-        <div className="relative">
-          <input
-            type={showLastFm ? 'text' : 'password'}
-            value={settings.lastfmApiKey}
-            onChange={(e) => updateSettings({ lastfmApiKey: e.target.value })}
-            placeholder="Clé API Last.fm"
-            className="w-full rounded-lg border border-border bg-bg px-3 py-2 pr-16 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-violet/50"
-          />
-          <button
-            type="button"
-            onClick={() => setShowLastFm(!showLastFm)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 text-xs text-text-muted hover:text-text"
-          >
-            {showLastFm ? 'Masquer' : 'Voir'}
-          </button>
-        </div>
-      </GlassCard>
     </div>
   )
 }

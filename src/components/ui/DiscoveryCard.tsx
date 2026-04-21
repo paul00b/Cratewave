@@ -1,57 +1,70 @@
 import { useState } from 'react'
-import type { SpotifyTrack } from '../../types'
+import type { Recommendation } from '../../types'
 import { useAppStore } from '../../store'
-import { searchTracks } from '../../services/spotify'
-import { useSpotifyAuth } from '../../hooks/useSpotify'
 import TrackCard from './TrackCard'
 
 interface Props {
-  name: string
-  reason?: string
-  genres?: string[]
+  rec: Recommendation
 }
 
-export default function DiscoveryCard({ name, reason, genres }: Props) {
+export default function DiscoveryCard({ rec }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const [tracks, setTracks] = useState<SpotifyTrack[]>([])
-  const [loading, setLoading] = useState(false)
-  const { getToken } = useSpotifyAuth()
   const selectedTracks = useAppStore((s) => s.selectedTracks)
   const toggleTrack = useAppStore((s) => s.toggleTrack)
 
-  const handleExpand = async () => {
-    if (expanded) {
-      setExpanded(false)
-      return
-    }
-    const token = getToken()
-    if (!token) return
-    setLoading(true)
-    try {
-      const results = await searchTracks(token, `artist:${name}`, 5)
-      setTracks(results)
-    } catch {
-      setTracks([])
-    } finally {
-      setLoading(false)
-      setExpanded(true)
-    }
-  }
+  const { artist, reason, tags, tracks } = rec
+  const initial = artist.name[0]?.toUpperCase() ?? '?'
 
   return (
-    <div className="glass flex flex-col gap-3 p-4">
-      <div className="flex items-start justify-between gap-3">
+    <div className="glass flex flex-col gap-3 p-4 transition-colors">
+      <div className="flex items-start gap-3">
+        {artist.image ? (
+          <img
+            src={artist.image}
+            alt={artist.name}
+            className="h-16 w-16 flex-shrink-0 rounded-xl object-cover ring-1 ring-white/10"
+          />
+        ) : (
+          <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet/30 to-rose/20 text-lg font-semibold text-white/80 ring-1 ring-white/10">
+            {initial}
+          </div>
+        )}
+
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold">{name}</h3>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="truncate text-sm font-semibold">
+              {artist.spotifyUrl ? (
+                <a
+                  href={artist.spotifyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-violet-light"
+                >
+                  {artist.name}
+                </a>
+              ) : (
+                artist.name
+              )}
+            </h3>
+            <span className="flex-shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-muted">
+              {rec.source === 'close' ? 'Proche' : 'Lointain'}
+            </span>
+          </div>
           {reason && (
-            <p className="mt-1 text-xs text-text-muted">{reason}</p>
+            <p className="mt-1 line-clamp-2 text-xs leading-snug text-text-muted">
+              {reason}
+            </p>
           )}
-          {genres && genres.length > 0 && (
+          {tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {genres.map((g) => (
+              {tags.slice(0, 3).map((g) => (
                 <span
                   key={g}
-                  className="rounded-full bg-rose/10 px-2 py-0.5 text-xs text-rose-light"
+                  className={`rounded-full px-2 py-0.5 text-[10px] ${
+                    rec.source === 'close'
+                      ? 'bg-violet/10 text-violet-light'
+                      : 'bg-rose/10 text-rose-light'
+                  }`}
                 >
                   {g}
                 </span>
@@ -59,17 +72,11 @@ export default function DiscoveryCard({ name, reason, genres }: Props) {
             </div>
           )}
         </div>
-        <button
-          onClick={handleExpand}
-          className="flex-shrink-0 rounded-lg bg-violet/10 px-3 py-1.5 text-xs font-medium text-violet-light transition-colors hover:bg-violet/20"
-        >
-          {loading ? '...' : expanded ? 'Masquer' : 'Morceaux'}
-        </button>
       </div>
 
-      {expanded && tracks.length > 0 && (
+      {tracks.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          {tracks.map((track) => (
+          {(expanded ? tracks : tracks.slice(0, 1)).map((track) => (
             <TrackCard
               key={track.id}
               track={track}
@@ -77,11 +84,15 @@ export default function DiscoveryCard({ name, reason, genres }: Props) {
               onToggle={() => toggleTrack(track)}
             />
           ))}
+          {tracks.length > 1 && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="self-start text-[11px] text-text-muted transition-colors hover:text-text"
+            >
+              {expanded ? 'Réduire' : `+ ${tracks.length - 1} autre${tracks.length - 1 > 1 ? 's' : ''}`}
+            </button>
+          )}
         </div>
-      )}
-
-      {expanded && tracks.length === 0 && !loading && (
-        <p className="text-xs text-text-muted">Aucun morceau trouvé.</p>
       )}
     </div>
   )

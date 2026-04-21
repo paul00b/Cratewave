@@ -108,11 +108,19 @@ export async function refreshAccessToken(refreshToken: string): Promise<SpotifyT
 
 // API helpers
 
-async function spotifyFetch<T>(endpoint: string, token: string): Promise<T> {
+async function spotifyFetch<T>(endpoint: string, token: string, retry = 1): Promise<T> {
   const res = await fetch(`${SPOTIFY_API}${endpoint}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  if (!res.ok) throw new Error(`Spotify API error: ${res.status}`)
+  if (res.status === 429 && retry > 0) {
+    const retryAfter = Math.min(Number(res.headers.get('Retry-After') ?? 2), 10)
+    await new Promise((r) => setTimeout(r, retryAfter * 1000))
+    return spotifyFetch<T>(endpoint, token, retry - 1)
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`Spotify ${res.status}${body ? `: ${body.slice(0, 120)}` : ''}`)
+  }
   return res.json() as Promise<T>
 }
 
@@ -181,6 +189,14 @@ export function searchTracks(token: string, query: string, limit = 5) {
     token,
   ).then((r) => r.tracks.items)
 }
+
+export function searchArtist(token: string, name: string) {
+  return spotifyFetch<{ artists: { items: SpotifyArtist[] } }>(
+    `/search?q=${encodeURIComponent(name)}&type=artist&limit=1`,
+    token,
+  ).then((r) => r.artists.items[0] ?? null)
+}
+
 
 export function getCurrentUser(token: string) {
   return spotifyFetch<{ id: string; display_name: string; images: { url: string }[] }>(
