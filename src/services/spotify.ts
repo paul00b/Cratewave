@@ -112,13 +112,46 @@ export async function refreshAccessToken(refreshToken: string): Promise<SpotifyT
 
 // API helpers
 
-async function spotifyFetch<T>(endpoint: string, token: string, retry = 1): Promise<T> {
-  const res = await fetch(`${SPOTIFY_API}${endpoint}`, {
-    headers: { Authorization: `Bearer ${token}` },
+// Concurrency limiter — Spotify rate-limits /search hard when we fan out
+// parallel Promise.all calls across recommendation pipelines.
+const MAX_CONCURRENT = 4
+let inFlight = 0
+const queue: Array<() => void> = []
+
+function acquireSlot(): Promise<void> {
+  if (inFlight < MAX_CONCURRENT) {
+    inFlight++
+    return Promise.resolve()
+  }
+  return new Promise((resolve) => {
+    queue.push(() => {
+      inFlight++
+      resolve()
+    })
   })
+}
+
+function releaseSlot() {
+  inFlight--
+  const next = queue.shift()
+  if (next) next()
+}
+
+async function spotifyFetch<T>(endpoint: string, token: string, retry = 3): Promise<T> {
+  await acquireSlot()
+  let res: Response
+  try {
+    res = await fetch(`${SPOTIFY_API}${endpoint}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  } finally {
+    releaseSlot()
+  }
   if (res.status === 429 && retry > 0) {
-    const retryAfter = Math.min(Number(res.headers.get('Retry-After') ?? 2), 10)
-    await new Promise((r) => setTimeout(r, retryAfter * 1000))
+    const retryAfter = Math.min(Number(res.headers.get('Retry-After') ?? 1), 10)
+    // Add a little jitter so retries don't all fire at once
+    const waitMs = retryAfter * 1000 + Math.random() * 500
+    await new Promise((r) => setTimeout(r, waitMs))
     return spotifyFetch<T>(endpoint, token, retry - 1)
   }
   if (!res.ok) {
