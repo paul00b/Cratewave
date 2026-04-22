@@ -53,6 +53,11 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const playerRef = useRef<Spotify.Player | null>(null)
 
+  // Keep a live ref to getToken so the SDK's getOAuthToken always reads the
+  // freshest token without needing to re-init the player when it refreshes.
+  const getTokenRef = useRef(getToken)
+  useEffect(() => { getTokenRef.current = getToken }, [getToken])
+
   useEffect(() => {
     if (!isAuthenticated) return
     let cancelled = false
@@ -65,26 +70,41 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
       player = new window.Spotify.Player({
         name: 'Cratewave Web',
         getOAuthToken: (cb) => {
-          const token = getToken()
+          const token = getTokenRef.current()
+          console.log('[SDK] getOAuthToken → token?', token ? token.slice(0, 12) + '…' : 'NULL')
           if (token) cb(token)
         },
         volume: 0.6,
       })
 
+      console.log('[SDK] connecting player…')
+
       player.addListener('ready', ({ device_id }) => {
+        console.log('[SDK] ready, device_id:', device_id)
         setDeviceId(device_id)
         setReady(true)
       })
       player.addListener('not_ready', () => setReady(false))
       player.addListener('player_state_changed', (s) => setState(s))
-      player.addListener('authentication_error', ({ message }) => setError(message))
-      player.addListener('account_error', () =>
-        setError('Spotify Premium requis pour la lecture dans Cratewave.'),
-      )
-      player.addListener('initialization_error', ({ message }) => setError(message))
-      player.addListener('playback_error', ({ message }) => setError(message))
+      player.addListener('authentication_error', ({ message }) => {
+        console.error('[SDK] authentication_error:', message)
+        setError(`Auth: ${message}`)
+      })
+      player.addListener('account_error', ({ message }) => {
+        console.error('[SDK] account_error:', message)
+        setError('Spotify Premium requis pour la lecture dans Cratewave.')
+      })
+      player.addListener('initialization_error', ({ message }) => {
+        console.error('[SDK] initialization_error:', message)
+        setError(message)
+      })
+      player.addListener('playback_error', ({ message }) => {
+        console.error('[SDK] playback_error:', message)
+        setError(message)
+      })
 
       const ok = await player.connect()
+      console.log('[SDK] connect result:', ok)
       if (!ok) setError('Connexion au lecteur Spotify échouée.')
       playerRef.current = player
     })()
@@ -99,7 +119,7 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
       setDeviceId(null)
       setState(null)
     }
-  }, [isAuthenticated, getToken])
+  }, [isAuthenticated])
 
   // Live-tick position while playing
   const [tick, setTick] = useState(0)
@@ -120,17 +140,34 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
       const token = getToken()
       if (!token || !deviceId || uris.length === 0) return
       setTick(0)
-      const res = await fetch(
-        `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,
-        {
+
+      const doPlay = () =>
+        fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
           method: 'PUT',
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ uris, offset: { position: startIndex } }),
-        },
-      )
+        })
+
+      let res = await doPlay()
+
+      // If device not yet registered server-side, transfer playback then retry.
+      if (res.status === 404) {
+        await fetch('https://api.spotify.com/v1/me/player', {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ device_ids: [deviceId], play: false }),
+        })
+        // Small delay to let Spotify register the transfer.
+        await new Promise((r) => setTimeout(r, 500))
+        res = await doPlay()
+      }
+
       if (!res.ok) {
         const body = await res.text().catch(() => '')
         if (res.status === 403) {
