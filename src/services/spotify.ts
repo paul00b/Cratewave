@@ -148,8 +148,12 @@ async function spotifyFetch<T>(endpoint: string, token: string, retry = 3): Prom
     releaseSlot()
   }
   if (res.status === 429 && retry > 0) {
-    const retryAfter = Math.min(Number(res.headers.get('Retry-After') ?? 1), 10)
-    // Add a little jitter so retries don't all fire at once
+    const retryAfter = Number(res.headers.get('Retry-After') ?? 1)
+    // Cap at 30s per attempt — beyond that we bail so the UI can surface the issue
+    // instead of hanging. Spotify extended rate limits last hours; retrying won't help.
+    if (retryAfter > 30) {
+      throw new Error(`Spotify 429: rate limited for ${retryAfter}s — try again later`)
+    }
     const waitMs = retryAfter * 1000 + Math.random() * 500
     await new Promise((r) => setTimeout(r, waitMs))
     return spotifyFetch<T>(endpoint, token, retry - 1)
@@ -235,11 +239,23 @@ export function searchTracks(token: string, query: string, limit = 5) {
   ).then((r) => r.tracks.items)
 }
 
+// Artist identities don't change — cache by lowercased name for the session
+// to avoid re-hitting /search for recurring artists across generations.
+const artistSearchCache = new Map<string, SpotifyArtist | null>()
+
 export function searchArtist(token: string, name: string) {
+  const key = name.toLowerCase().trim()
+  if (artistSearchCache.has(key)) {
+    return Promise.resolve(artistSearchCache.get(key) ?? null)
+  }
   return spotifyFetch<{ artists: { items: SpotifyArtist[] } }>(
     `/search?q=${encodeURIComponent(name)}&type=artist&limit=1`,
     token,
-  ).then((r) => r.artists.items[0] ?? null)
+  ).then((r) => {
+    const artist = r.artists.items[0] ?? null
+    artistSearchCache.set(key, artist)
+    return artist
+  })
 }
 
 
