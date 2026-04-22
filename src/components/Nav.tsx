@@ -44,6 +44,16 @@ const links: { to: string; label: string; icon: ReactNode }[] = [
     ),
   },
   {
+    to: '/playlists',
+    label: 'Playlists',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M3 6h13M3 12h13M3 18h9" />
+        <circle cx="19" cy="17" r="3" />
+      </svg>
+    ),
+  },
+  {
     to: '/settings',
     label: 'Settings',
     icon: (

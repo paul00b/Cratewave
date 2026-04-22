@@ -1,7 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useSpotifyAuth } from '../hooks/useSpotify'
+import { useAuth } from '../hooks/useAuth'
 import { useAppStore } from '../store'
-import { createPlaylist, getCurrentUser } from '../services/spotify'
+import {
+  createPlaylist as createCratewavePlaylist,
+  addTrackToPlaylist,
+} from '../services/playlists'
 import {
   buildListeningProfile,
   getCloseRecommendations,
@@ -18,6 +23,8 @@ import { MOOD_PROFILES } from '../utils/mood'
 
 export default function Discover() {
   const { isAuthenticated, getToken } = useSpotifyAuth()
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const mood = useAppStore((s) => s.mood)
   const discoveryMode = useAppStore((s) => s.discoveryMode)
   const selectedTracks = useAppStore((s) => s.selectedTracks)
@@ -29,7 +36,6 @@ export default function Discover() {
   const [results, setResults] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [playlistUrl, setPlaylistUrl] = useState<string | null>(null)
   const [creatingPlaylist, setCreatingPlaylist] = useState(false)
 
   if (!isAuthenticated) return <AuthPrompt />
@@ -41,7 +47,6 @@ export default function Discover() {
     setLoading(true)
     setError(null)
     setResults([])
-    setPlaylistUrl(null)
     clearSelectedTracks()
 
     try {
@@ -78,18 +83,21 @@ export default function Discover() {
   }
 
   const handleCreatePlaylist = async () => {
-    const token = getToken()
-    if (!token || selectedTracks.length === 0) return
+    if (!user || selectedTracks.length === 0) return
+
+    const date = new Date().toLocaleDateString('fr-FR')
+    const defaultName = `${MOOD_PROFILES[mood].label} — ${date}`
+    const name = window.prompt('Nom de la playlist', defaultName)?.trim()
+    if (!name) return
 
     setCreatingPlaylist(true)
     try {
-      const user = await getCurrentUser(token)
-      const date = new Date().toLocaleDateString('fr-FR')
-      const name = `Cratewave — ${MOOD_PROFILES[mood].label} — ${date}`
-      const uris = selectedTracks.map((t) => `spotify:track:${t.id}`)
-      const playlist = await createPlaylist(token, user.id, name, uris)
-      setPlaylistUrl(playlist.external_urls.spotify)
+      const playlist = await createCratewavePlaylist(user.uid, name)
+      for (const track of selectedTracks) {
+        await addTrackToPlaylist(user.uid, playlist.id, track)
+      }
       clearSelectedTracks()
+      navigate(`/playlists/${playlist.id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de créer la playlist')
     } finally {
@@ -185,21 +193,6 @@ export default function Discover() {
         </div>
       )}
 
-      {playlistUrl && (
-        <GlassCard className="text-center">
-          <p className="mb-2 text-sm font-medium text-violet-light">
-            Playlist créée avec succès !
-          </p>
-          <a
-            href={playlistUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-text-muted hover:text-text hover:underline"
-          >
-            Ouvrir dans Spotify
-          </a>
-        </GlassCard>
-      )}
     </div>
   )
 }

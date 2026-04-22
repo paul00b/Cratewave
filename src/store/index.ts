@@ -47,24 +47,9 @@ const loadSeen = (): string[] => {
   return []
 }
 
-const loadTokens = (): SpotifyTokens | null => {
-  try {
-    const raw = localStorage.getItem('cratewave_spotify_tokens')
-    if (raw) return JSON.parse(raw) as SpotifyTokens
-  } catch { /* ignore */ }
-  return null
-}
-
 export const useAppStore = create<AppState>()((set) => ({
-  spotifyTokens: loadTokens(),
-  setSpotifyTokens: (tokens) => {
-    if (tokens) {
-      localStorage.setItem('cratewave_spotify_tokens', JSON.stringify(tokens))
-    } else {
-      localStorage.removeItem('cratewave_spotify_tokens')
-    }
-    set({ spotifyTokens: tokens })
-  },
+  spotifyTokens: null,
+  setSpotifyTokens: (tokens) => set({ spotifyTokens: tokens }),
 
   timeRange: 'medium_term',
   setTimeRange: (timeRange) => set({ timeRange }),

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import GlassCard from '../components/ui/GlassCard'
 import { useSpotifyAuth } from '../hooks/useSpotify'
+import { useAuth } from '../hooks/useAuth'
 import { startSpotifyAuth, getCurrentUser } from '../services/spotify'
 
 export default function Settings() {
   const { isAuthenticated, getToken, logout } = useSpotifyAuth()
-  const [user, setUser] = useState<{
+  const { user, signOut } = useAuth()
+  const [spotifyProfile, setSpotifyProfile] = useState<{
     display_name: string
     images: { url: string }[]
   } | null>(null)
@@ -13,13 +15,13 @@ export default function Settings() {
   useEffect(() => {
     const token = getToken()
     if (!token) {
-      setUser(null)
+      setSpotifyProfile(null)
       return
     }
     let cancelled = false
     getCurrentUser(token)
-      .then((u) => !cancelled && setUser(u))
-      .catch(() => !cancelled && setUser(null))
+      .then((u) => !cancelled && setSpotifyProfile(u))
+      .catch(() => !cancelled && setSpotifyProfile(null))
     return () => { cancelled = true }
   }, [isAuthenticated, getToken])
 
@@ -30,21 +32,21 @@ export default function Settings() {
       <GlassCard>
         <h2 className="mb-4 text-lg font-semibold">Spotify</h2>
 
-        {isAuthenticated && user ? (
+        {isAuthenticated && spotifyProfile ? (
           <div className="flex items-center gap-4">
-            {user.images[0]?.url ? (
+            {spotifyProfile.images[0]?.url ? (
               <img
-                src={user.images[0].url}
-                alt={user.display_name}
+                src={spotifyProfile.images[0].url}
+                alt={spotifyProfile.display_name}
                 className="h-12 w-12 rounded-full object-cover"
               />
             ) : (
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet/20 text-lg font-bold text-violet-light">
-                {user.display_name[0]}
+                {spotifyProfile.display_name[0]}
               </div>
             )}
             <div className="flex-1">
-              <p className="text-sm font-medium">{user.display_name}</p>
+              <p className="text-sm font-medium">{spotifyProfile.display_name}</p>
               <p className="text-xs text-text-muted">Connecté</p>
             </div>
             <button
@@ -62,6 +64,19 @@ export default function Settings() {
             Se connecter à Spotify
           </button>
         )}
+      </GlassCard>
+
+      <GlassCard>
+        <h2 className="mb-2 text-lg font-semibold">Compte</h2>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-text-muted">{user?.email}</p>
+          <button
+            onClick={signOut}
+            className="rounded-xl border border-border px-4 py-2 text-sm text-text-muted transition-colors hover:border-rose/40 hover:text-rose-light"
+          >
+            Se déconnecter
+          </button>
+        </div>
       </GlassCard>
 
       <GlassCard>
