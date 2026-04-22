@@ -103,10 +103,12 @@ export default function Stats() {
         {loadingArtists ? (
           <SkeletonList count={6} className="h-48 w-full" />
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {artists.map((artist) => (
-              <ArtistCard key={artist.id} artist={artist} />
-            ))}
+          <div className="-mx-4 overflow-x-auto px-4 pb-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            <div className="flex snap-x snap-mandatory gap-3">
+              {artists.map((artist) => (
+                <ArtistCard key={artist.id} artist={artist} compact />
+              ))}
+            </div>
           </div>
         )}
       </section>

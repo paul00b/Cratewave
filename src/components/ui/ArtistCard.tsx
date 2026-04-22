@@ -2,10 +2,42 @@ import type { SpotifyArtist } from '../../types'
 
 interface Props {
   artist: SpotifyArtist
+  compact?: boolean
 }
 
-export default function ArtistCard({ artist }: Props) {
+export default function ArtistCard({ artist, compact = false }: Props) {
   const image = artist.images[0]?.url
+
+  if (compact) {
+    return (
+      <a
+        href={artist.external_urls.spotify}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="glass flex w-36 shrink-0 snap-start flex-col items-center gap-2 p-3 transition-colors hover:bg-surface"
+      >
+        {image ? (
+          <img
+            src={image}
+            alt={artist.name}
+            className="h-24 w-24 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-surface text-xl text-text-muted">
+            {artist.name[0]}
+          </div>
+        )}
+        <span className="line-clamp-1 text-center text-xs font-semibold">
+          {artist.name}
+        </span>
+        {artist.genres?.[0] && (
+          <span className="line-clamp-1 rounded-full bg-violet/10 px-2 py-0.5 text-[10px] text-violet-light">
+            {artist.genres[0]}
+          </span>
+        )}
+      </a>
+    )
+  }
 
   return (
     <a
