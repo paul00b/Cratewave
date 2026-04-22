@@ -82,8 +82,6 @@ export async function exchangeCode(code: string): Promise<SpotifyTokens> {
   if (!res.ok) throw new Error('Token exchange failed')
   const data = await res.json()
 
-  console.log('[Spotify] scopes granted:', data.scope)
-
   return {
     access_token: data.access_token,
     refresh_token: data.refresh_token,
@@ -104,8 +102,6 @@ export async function refreshAccessToken(refreshToken: string): Promise<SpotifyT
 
   if (!res.ok) throw new Error('Token refresh failed')
   const data = await res.json()
-
-  console.log('[Spotify] refreshed scopes:', data.scope)
 
   return {
     access_token: data.access_token,

@@ -26,6 +26,7 @@ interface AppState {
   // Selected tracks for playlist creation
   selectedTracks: SpotifyTrack[]
   toggleTrack: (track: SpotifyTrack) => void
+  addTracks: (tracks: SpotifyTrack[]) => void
   clearSelectedTracks: () => void
 
   // Top artists cache (used by discovery)
@@ -69,6 +70,18 @@ export const useAppStore = create<AppState>()((set) => ({
           ? state.selectedTracks.filter((t) => t.id !== track.id)
           : [...state.selectedTracks, track],
       }
+    }),
+  addTracks: (tracks) =>
+    set((state) => {
+      const seen = new Set(state.selectedTracks.map((t) => t.id))
+      const merged = [...state.selectedTracks]
+      for (const t of tracks) {
+        if (!seen.has(t.id)) {
+          merged.push(t)
+          seen.add(t.id)
+        }
+      }
+      return { selectedTracks: merged }
     }),
   clearSelectedTracks: () => set({ selectedTracks: [] }),
 

@@ -28,6 +28,7 @@ export default function Discover() {
   const mood = useAppStore((s) => s.mood)
   const discoveryMode = useAppStore((s) => s.discoveryMode)
   const selectedTracks = useAppStore((s) => s.selectedTracks)
+  const addTracks = useAppStore((s) => s.addTracks)
   const clearSelectedTracks = useAppStore((s) => s.clearSelectedTracks)
   const seenArtists = useAppStore((s) => s.seenArtists)
   const markSeen = useAppStore((s) => s.markSeen)
@@ -161,10 +162,20 @@ export default function Discover() {
 
       {results.length > 0 && (
         <section>
-          <h2 className="mb-4 text-xl font-semibold">
-            {discoveryMode === 'close' ? 'Proches' : 'Au-delà'} ·{' '}
-            <span className="text-text-muted">{results.length}</span>
-          </h2>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">
+              {discoveryMode === 'close' ? 'Proches' : 'Au-delà'} ·{' '}
+              <span className="text-text-muted">{results.length}</span>
+            </h2>
+            <button
+              onClick={() =>
+                addTracks(results.map((r) => r.tracks[0]).filter((t): t is NonNullable<typeof t> => !!t))
+              }
+              className="rounded-xl border border-border px-3 py-1.5 text-xs text-text-muted transition-colors hover:border-violet/40 hover:text-violet-light"
+            >
+              Tout ajouter
+            </button>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {results.map((r, i) => (
               <DiscoveryCard
