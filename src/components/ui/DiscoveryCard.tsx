@@ -16,7 +16,7 @@ export default function DiscoveryCard({ rec }: Props) {
   const initial = artist.name[0]?.toUpperCase() ?? '?'
 
   return (
-    <div className="glass flex flex-col gap-3 p-4 transition-colors">
+    <div className="glass flex min-w-0 flex-col gap-3 overflow-hidden p-4 transition-colors">
       <div className="flex items-start gap-3">
         {artist.image ? (
           <img
@@ -75,7 +75,7 @@ export default function DiscoveryCard({ rec }: Props) {
       </div>
 
       {tracks.length > 0 && (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-0 flex-col gap-1.5">
           {(expanded ? tracks : tracks.slice(0, 1)).map((track) => (
             <TrackCard
               key={track.id}

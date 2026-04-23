@@ -186,7 +186,7 @@ export default function Discover() {
               Tout ajouter
             </button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2 sm:[grid-template-columns:repeat(2,minmax(0,1fr))]">
             {results.map((r, i) => (
               <DiscoveryCard
                 key={`${r.source}-${r.artist.id ?? r.artist.name}-${i}`}
