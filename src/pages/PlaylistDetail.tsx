@@ -133,10 +133,10 @@ export default function PlaylistDetail() {
           </>
         ) : (
           <>
-            <h1 className="flex-1 text-3xl font-bold">{playlist.name}</h1>
+            <h1 className="min-w-0 flex-1 truncate text-2xl font-bold sm:text-3xl">{playlist.name}</h1>
             <button
               onClick={() => setRenaming(true)}
-              className="rounded-xl border border-border px-3 py-1.5 text-xs text-text-muted hover:border-violet/40 hover:text-violet-light"
+              className="shrink-0 rounded-xl border border-border px-3 py-1.5 text-xs text-text-muted hover:border-violet/40 hover:text-violet-light"
             >
               Renommer
             </button>

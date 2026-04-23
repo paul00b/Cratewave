@@ -27,26 +27,26 @@ export default function Settings() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-3xl font-bold">Paramètres</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">Paramètres</h1>
 
       <GlassCard>
         <h2 className="mb-4 text-lg font-semibold">Spotify</h2>
 
         {isAuthenticated && spotifyProfile ? (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             {spotifyProfile.images[0]?.url ? (
               <img
                 src={spotifyProfile.images[0].url}
                 alt={spotifyProfile.display_name}
-                className="h-12 w-12 rounded-full object-cover"
+                className="h-12 w-12 shrink-0 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet/20 text-lg font-bold text-violet-light">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-violet/20 text-lg font-bold text-violet-light">
                 {spotifyProfile.display_name[0]}
               </div>
             )}
-            <div className="flex-1">
-              <p className="text-sm font-medium">{spotifyProfile.display_name}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{spotifyProfile.display_name}</p>
               <p className="text-xs text-text-muted">Connecté</p>
             </div>
             <button
@@ -68,8 +68,8 @@ export default function Settings() {
 
       <GlassCard>
         <h2 className="mb-2 text-lg font-semibold">Compte</h2>
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-text-muted">{user?.email}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="min-w-0 flex-1 truncate text-sm text-text-muted">{user?.email}</p>
           <button
             onClick={signOut}
             className="rounded-xl border border-border px-4 py-2 text-sm text-text-muted transition-colors hover:border-rose/40 hover:text-rose-light"

@@ -15,7 +15,7 @@ import {
 import type { Recommendation } from '../types'
 import AuthPrompt from '../components/ui/AuthPrompt'
 import MoodSelector from '../components/ui/MoodSelector'
-import ModeSlider from '../components/ui/ModeSlider'
+import ModeCards from '../components/ui/ModeCards'
 import GlassCard from '../components/ui/GlassCard'
 import DiscoveryCard from '../components/ui/DiscoveryCard'
 import DiscoveryLoader from '../components/ui/DiscoveryLoader'
@@ -109,8 +109,8 @@ export default function Discover() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Découvrir</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold sm:text-3xl">Découvrir</h1>
           <p className="mt-1 text-xs text-text-muted">
             {seenArtists.length > 0
               ? `${seenArtists.length} artiste${seenArtists.length > 1 ? 's' : ''} déjà exploré${seenArtists.length > 1 ? 's' : ''}`
@@ -127,30 +127,40 @@ export default function Discover() {
         )}
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col gap-4">
-        <div>
-          <h2 className="mb-2 text-sm font-medium text-text-muted">Mood</h2>
-          <MoodSelector />
+      {/* Step 1 — Mode */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-baseline gap-2">
+          <span className="rounded-full bg-violet/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-light">
+            1
+          </span>
+          <h2 className="text-sm font-medium text-text-muted">Choisis ta direction</h2>
         </div>
-        <div className="flex flex-wrap items-end gap-4">
-          <div>
-            <h2 className="mb-2 text-sm font-medium text-text-muted">Mode</h2>
-            <ModeSlider />
-          </div>
-          <button
-            onClick={run}
-            disabled={loading}
-            className="rounded-xl bg-violet px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-light disabled:opacity-40"
-          >
-            {loading
-              ? 'Recherche...'
-              : results.length > 0
-                ? 'Regénérer'
-                : 'Lancer la recherche'}
-          </button>
-        </div>
+        <ModeCards />
       </div>
+
+      {/* Step 2 — Mood */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-baseline gap-2">
+          <span className="rounded-full bg-rose/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-light">
+            2
+          </span>
+          <h2 className="text-sm font-medium text-text-muted">Donne le ton</h2>
+        </div>
+        <MoodSelector />
+      </div>
+
+      {/* Step 3 — Launch */}
+      <button
+        onClick={run}
+        disabled={loading}
+        className="w-full rounded-2xl bg-violet px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-violet/20 transition-colors hover:bg-violet-light disabled:opacity-40 sm:mx-auto sm:max-w-sm"
+      >
+        {loading
+          ? 'Recherche…'
+          : results.length > 0
+            ? 'Régénérer'
+            : 'Lancer la recherche'}
+      </button>
 
       {error && (
         <GlassCard className="border-rose/20 text-center text-sm text-rose-light">
@@ -163,8 +173,8 @@ export default function Discover() {
       {results.length > 0 && (
         <section>
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold">
-              {discoveryMode === 'close' ? 'Proches' : 'Au-delà'} ·{' '}
+            <h2 className="text-lg font-semibold sm:text-xl">
+              {discoveryMode === 'close' ? 'Dans ton univers' : 'Au-delà'} ·{' '}
               <span className="text-text-muted">{results.length}</span>
             </h2>
             <button
@@ -189,7 +199,10 @@ export default function Discover() {
 
       {/* Playlist creation bar */}
       {results.length > 0 && selectedTracks.length > 0 && (
-        <div className="glass fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 px-5 py-3">
+        <div
+          className="glass fixed left-1/2 z-40 flex w-[min(540px,calc(100%-1.5rem))] -translate-x-1/2 items-center justify-between gap-3 px-4 py-3 sm:w-auto sm:justify-start sm:gap-4 sm:px-5"
+          style={{ bottom: 'calc(var(--nav-height) + 0.5rem)' }}
+        >
           <span className="text-sm font-medium">
             {selectedTracks.length} morceau{selectedTracks.length > 1 ? 'x' : ''}{' '}
             sélectionné{selectedTracks.length > 1 ? 's' : ''}

@@ -68,7 +68,7 @@ export default function Playlists() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-3xl font-bold">Tes playlists</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">Tes playlists</h1>
 
       <GlassCard>
         <form onSubmit={onCreate} className="flex gap-2">
@@ -102,8 +102,8 @@ export default function Playlists() {
         <div className="flex flex-col gap-2">
           {playlists.map((pl) => (
             <div key={pl.id} className="glass flex items-center gap-3 p-3">
-              <Link to={`/playlists/${pl.id}`} className="flex-1">
-                <p className="text-sm font-semibold">{pl.name}</p>
+              <Link to={`/playlists/${pl.id}`} className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{pl.name}</p>
                 <p className="text-xs text-text-muted">
                   {pl.track_count ?? 0} titre{(pl.track_count ?? 0) > 1 ? 's' : ''}
                 </p>

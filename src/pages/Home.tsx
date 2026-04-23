@@ -34,17 +34,17 @@ export default function Home() {
   }, [isAuthenticated, getToken, artists.length, setTopArtists])
 
   return (
-    <div className="flex flex-col gap-12">
-      <div className="flex flex-col items-center gap-8 pt-16 text-center">
-        <h1 className="bg-gradient-to-r from-violet-light to-rose-light bg-clip-text text-5xl font-bold tracking-tight text-transparent">
+    <div className="flex flex-col gap-10 sm:gap-12">
+      <div className="flex flex-col items-center gap-6 pt-10 text-center sm:gap-8 sm:pt-16">
+        <h1 className="bg-gradient-to-r from-violet-light to-rose-light bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
           Cratewave
         </h1>
-        <p className="max-w-md text-lg text-text-muted">
+        <p className="max-w-md text-base text-text-muted sm:text-lg">
           Découverte musicale personnelle. Spotify te connaît bien — Cratewave
           t'emmène plus loin.
         </p>
 
-        <div className="mt-4 flex gap-4">
+        <div className="mt-2 flex flex-wrap justify-center gap-3 sm:mt-4 sm:gap-4">
           <Link
             to="/stats"
             className="glass rounded-xl px-6 py-3 text-sm font-medium text-violet-light transition-colors hover:bg-violet/10"
@@ -62,7 +62,7 @@ export default function Home() {
 
       {isAuthenticated && (loading || artists.length > 0) && (
         <section>
-          <h2 className="mb-4 text-xl font-semibold">Tes artistes du moment</h2>
+          <h2 className="mb-3 text-lg font-semibold sm:mb-4 sm:text-xl">Tes artistes du moment</h2>
           {loading ? (
             <SkeletonList count={6} className="h-40 w-36" />
           ) : (

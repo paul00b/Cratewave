@@ -2,8 +2,8 @@ import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
 
 const iconProps = {
-  width: 22,
-  height: 22,
+  width: 24,
+  height: 24,
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
@@ -67,14 +67,18 @@ const links: { to: string; label: string; icon: ReactNode }[] = [
 
 export default function Nav() {
   return (
-    <nav className="glass fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 gap-1 px-2 py-2">
+    <nav
+      className="glass fixed left-1/2 z-50 flex -translate-x-1/2 gap-1.5 rounded-full px-3 py-2.5"
+      style={{ bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))' }}
+    >
       {links.map(({ to, label, icon }) => (
         <NavLink
           key={to}
           to={to}
           title={label}
+          aria-label={label}
           className={({ isActive }) =>
-            `flex items-center justify-center rounded-xl p-2.5 transition-colors ${
+            `flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
               isActive
                 ? 'bg-violet/20 text-violet-light'
                 : 'text-text-muted hover:text-text'

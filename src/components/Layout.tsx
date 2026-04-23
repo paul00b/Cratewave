@@ -13,7 +13,10 @@ export default function Layout() {
 
         <Nav />
         <PlayerBar />
-        <main className="relative z-10 mx-auto max-w-5xl px-4 pb-40 pt-8">
+        <main
+          className="relative z-10 mx-auto min-w-0 max-w-5xl px-4 pt-6 sm:px-6 sm:pt-8"
+          style={{ paddingBottom: 'calc(var(--nav-height) + 7rem)' }}
+        >
           <Outlet />
         </main>
       </div>

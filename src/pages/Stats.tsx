@@ -93,13 +93,13 @@ export default function Stats() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-3xl font-bold">Tes stats</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">Tes stats</h1>
         <TimeRangeTabs />
       </div>
 
       {/* Top Artists */}
       <section>
-        <h2 className="mb-4 text-xl font-semibold">Top artistes</h2>
+        <h2 className="mb-3 text-lg font-semibold sm:mb-4 sm:text-xl">Top artistes</h2>
         {loadingArtists ? (
           <SkeletonList count={6} className="h-48 w-full" />
         ) : (
@@ -116,7 +116,7 @@ export default function Stats() {
       {/* Dominant Genres */}
       {genres.length > 0 && (
         <section>
-          <h2 className="mb-4 text-xl font-semibold">Genres dominants</h2>
+          <h2 className="mb-3 text-lg font-semibold sm:mb-4 sm:text-xl">Genres dominants</h2>
           <GlassCard className="flex flex-wrap gap-2">
             {genres.map(({ genre, count }, i) => (
               <span
@@ -137,7 +137,7 @@ export default function Stats() {
 
       {/* Top Tracks */}
       <section>
-        <h2 className="mb-4 text-xl font-semibold">Top morceaux</h2>
+        <h2 className="mb-3 text-lg font-semibold sm:mb-4 sm:text-xl">Top morceaux</h2>
         {loadingTracks ? (
           <SkeletonList count={10} />
         ) : (
@@ -151,7 +151,7 @@ export default function Stats() {
 
       {/* Playlists */}
       <section>
-        <h2 className="mb-4 text-xl font-semibold">Tes playlists</h2>
+        <h2 className="mb-3 text-lg font-semibold sm:mb-4 sm:text-xl">Tes playlists</h2>
         {loadingPlaylists ? (
           <SkeletonList count={5} />
         ) : (
@@ -189,7 +189,7 @@ export default function Stats() {
 
       {/* Recently Played */}
       <section>
-        <h2 className="mb-4 text-xl font-semibold">Écoutes récentes</h2>
+        <h2 className="mb-3 text-lg font-semibold sm:mb-4 sm:text-xl">Écoutes récentes</h2>
         {loadingRecent ? (
           <SkeletonList count={10} />
         ) : (

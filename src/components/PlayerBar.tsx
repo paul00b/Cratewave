@@ -12,7 +12,10 @@ export default function PlayerBar() {
 
   if (error) {
     return (
-      <div className="glass fixed bottom-20 left-1/2 z-40 -translate-x-1/2 px-4 py-2 text-xs text-rose-light">
+      <div
+        className="glass fixed left-1/2 z-40 -translate-x-1/2 px-4 py-2 text-xs text-rose-light"
+        style={{ bottom: 'calc(var(--nav-height) + 0.75rem)' }}
+      >
         {error}
       </div>
     )
@@ -25,7 +28,10 @@ export default function PlayerBar() {
   const progress = state.duration > 0 ? (state.position / state.duration) * 100 : 0
 
   return (
-    <div className="glass fixed bottom-20 left-1/2 z-40 flex w-[min(540px,calc(100%-2rem))] -translate-x-1/2 flex-col gap-2 px-4 py-3">
+    <div
+      className="glass fixed left-1/2 z-40 flex w-[min(540px,calc(100%-1.5rem))] -translate-x-1/2 flex-col gap-2 px-4 py-3"
+      style={{ bottom: 'calc(var(--nav-height) + 0.75rem)' }}
+    >
       <div className="flex items-center gap-3">
         {cover && (
           <img src={cover} alt={track.name} className="h-10 w-10 rounded-md object-cover" />
